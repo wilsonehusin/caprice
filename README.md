@@ -34,8 +34,11 @@ func thing2() error {}
 func RunSomething() {
   s := scribe.New("RunSomething")
   s.Stage("thing1", thing1)
-  s.StageErr("thing2", thing2)
-  s.Done()
+  if err := s.StageErr("thing2", thing2); err != nil {
+    // err here is just passed from the returned value of thing2
+    panic(err)
+  }
+  s.Done(nil)
 }
 ```
 
@@ -51,15 +54,12 @@ import (
 func runStuff() error {}
 
 func TestMyApp(t *testing.T) {
-  s := scribe.NewTest(t, "TestMyApp")
+  s := scribe.NewT(t, "TestMyApp")
 
-  s.StageErr("runStuff", runStuff) // internally calls t.Fatal() on error
+  s.StageT("runStuff", runStuff) // internally calls t.Fatal() on error
 
-  if err := runMoreStuff(); err != nil {
-    s.Fail(err) // internally calls t.Fatal()
-  }
-
-  s.Done()
+  err := runMoreStuff()
+  s.Done(err) // if err != nil, internally call t.Fatal()
 }
 ```
 
@@ -75,21 +75,21 @@ import (
 )
 
 func TestMyApp(t *testing.T) {
-  s := scribe.NewTest(t, "TestMyApp")
+  s := scribe.NewT(t, "TestMyApp")
 
   s.Stage("prepare", prepareFunc)
 
   thingsDone := s.NewStage("things")
-  s.StageErr("do thing1", func() error {
+  s.StageT("do thing1", func() error {
     return thing1("some", "param")
   })
-  s.StageErr("do thing2", func() error {
+  s.StageT("do thing2", func() error {
     return thing2("some", "other", "param")
   })
-  thingsDone(nil) // t.Fatal() is only invoked if error is passed
+  thingsDone()
 
   s.Stage("cleanup", cleanUpPotentiallySlowInfrastructure)
-  s.Done()
+  s.Done(nil)
 }
 ```
 
