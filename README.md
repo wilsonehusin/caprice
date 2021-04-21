@@ -1,30 +1,10 @@
 # Caprice
 
-Caprice allows you to have better visibility in your time-intensive tests by emitting [CloudEvents](https://cloudevents.io/) and building a statistical model as well as visualizing the distribution of time spent for sections in a test.
+Caprice allows you to have better visibility in your time-intensive code by emitting [CloudEvents](https://cloudevents.io/) and building a statistical model as well as visualizing the distribution of time spent.
 
 ## Usage
 
 ### Basic
-
-With `CAPRICE_HOST=https://caprice.corp` set, the following snippet will emit CloudEvents to the specified host.
-
-```go
-import (
-  "testing"
-  
-  "xargs.dev/caprice/scribe"
-)
-
-func TestMyApp(t *testing.T) {
-  s := scribe.New("TestMyApp")
-  prepareTest()
-  s.Begin()
-  if err := runTest(); err != nil {
-    s.Fail()
-  }
-  s.Success()
-}
-```
 
 Upon execution, `STDOUT` should have a report of the following:
 
@@ -38,7 +18,50 @@ Upon execution, `STDOUT` should have a report of the following:
 }
 ```
 
-Throughout test execution, users can see in the linked URL above to follow the progress of testing.
+Throughout execution, users can see in the linked URL above to follow the progress of execution. `CAPRICE_HOST=` determines the output values above.
+
+#### Generic
+
+```go
+import (
+  "github.com/wilsonehusin/caprice/scribe"
+)
+
+func thing1() {}
+
+func thing2() error {}
+
+func RunSomething() {
+  s := scribe.New("RunSomething")
+  s.Stage("thing1", thing1)
+  s.StageErr("thing2", thing2)
+  s.Done()
+}
+```
+
+#### Testing
+
+```go
+import (
+  "testing"
+
+  "github.com/wilsonehusin/caprice/scribe"
+)
+
+func runStuff() error {}
+
+func TestMyApp(t *testing.T) {
+  s := scribe.NewTest(t, "TestMyApp")
+
+  s.StageErr("runStuff", runStuff) // internally calls t.Fatal() on error
+
+  if err := runMoreStuff(); err != nil {
+    s.Fail(err) // internally calls t.Fatal()
+  }
+
+  s.Done()
+}
+```
 
 ### Advanced
 
@@ -47,26 +70,26 @@ The powerful part comes in when stages are incorporated.
 ```go
 import (
   "testing"
-  
-  "xargs.dev/caprice/scribe"
+
+  "github.com/wilsonehusin/caprice/scribe"
 )
 
 func TestMyApp(t *testing.T) {
-  s := scribe.New("TestMyApp")
-  
-  s.Stage("prepare", t, prepareFunc)
-  
-  ts := s.StartStage("things")
-  s.Stage("do thing1", t, func() error {
+  s := scribe.NewTest(t, "TestMyApp")
+
+  s.Stage("prepare", prepareFunc)
+
+  thingsDone := s.NewStage("things")
+  s.StageErr("do thing1", func() error {
     return thing1("some", "param")
   })
-  s.Stage("do thing2", t, func() error {
+  s.StageErr("do thing2", func() error {
     return thing2("some", "other", "param")
   })
-  ts.Done()
-  
-  cleanUpPotentiallySlowInfrastructure()
-  s.Success()
+  thingsDone(nil) // t.Fatal() is only invoked if error is passed
+
+  s.Stage("cleanup", cleanUpPotentiallySlowInfrastructure)
+  s.Done()
 }
 ```
 
@@ -82,7 +105,7 @@ If the visualization were transformed to ASCII output, it will roughly look like
 02.497s  │ │ └ do thing1 [DONE 02.494s]
 02.498s  │ │ ┌ do thing2
 20.012s  │ │ └ do thing2 [DONE 17.514s]
-20.013s  │ └ things [DONE 20.011]
+20.013s  │ └ things [DONE 20.011s]
 40.130s  └ TestMyApp [DONE 40.130s]
 ```
 
@@ -106,4 +129,4 @@ CAPRICE_METADATA='{"mode"="local"}'
 The name _Caprice_ was taken from [24 Caprices](https://en.wikipedia.org/wiki/24_Caprices_for_Solo_Violin_(Paganini)) by Niccolò Paganini.
 The musical piece was an inspiration to [many other composers](https://en.wikipedia.org/wiki/Niccol%C3%B2_Paganini#Compositions).
 
-Just like the musical piece, this project brings value through repetition of test execution.
+Just like the musical piece, this project brings significantly more value through repetition of execution.
