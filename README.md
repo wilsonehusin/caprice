@@ -53,27 +53,18 @@ import (
 
 func TestMyApp(t *testing.T) {
   s := caprice.Scribe("TestMyApp")
-  err := s.Stage("prepare", prepareFunc)
-  if err != nil {
-    s.Fail()
-    t.Fatal()
-  }
+  
+  s.Stage("prepare", t, prepareFunc)
+  
   ts := s.StartStage("things")
-  err = s.Stage("do thing1", func() error {
+  s.Stage("do thing1", t, func() error {
     return thing1("some", "param")
   })
-  if err != nil {
-    s.Fail()
-    t.Fatal()
-  }
-  err = s.Stage("do thing2", func() error {
+  s.Stage("do thing2", t, func() error {
     return thing2("some", "other", "param")
   })
-  if err != nil {
-    s.Fail()
-    t.Fatal()
-  }
   ts.Done()
+  
   cleanUpPotentiallySlowInfrastructure()
   s.Success()
 }
@@ -84,14 +75,14 @@ If the visualization were transformed to ASCII output, it will roughly look like
 
 ```
 00.000s  ┌ TestMyApp
-00.000s  │ ├ prepare
-00.002s  │ ├ prepare [DONE 0.002s]
-00.002s  │ ├ things
-00.003s  │ │ ├ do thing1
-02.497s  │ │ ├ do thing1 [DONE 02.494s]
-02.498s  │ │ ├ do thing2
-20.012s  │ │ ├ do thing2 [DONE 17.514s]
-20.013s  │ ├ things [DONE 20.011]
+00.000s  │ ┌ prepare
+00.002s  │ └ prepare [DONE 0.002s]
+00.002s  │ ┌ things
+00.003s  │ │ ┌ do thing1
+02.497s  │ │ └ do thing1 [DONE 02.494s]
+02.498s  │ │ ┌ do thing2
+20.012s  │ │ └ do thing2 [DONE 17.514s]
+20.013s  │ └ things [DONE 20.011]
 40.130s  └ TestMyApp [DONE 40.130s]
 ```
 
