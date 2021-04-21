@@ -52,7 +52,7 @@ import (
 )
 
 func TestMyApp(t *testing.T) {
-  s := caprice.Scribe("TestMyApp")
+  s := scribe.New("TestMyApp")
   
   s.Stage("prepare", t, prepareFunc)
   
@@ -93,7 +93,7 @@ This can be setup through `init()` or `CAPRICE_METADATA=`,  such as:
 
 ```go
 func init() {
-  scribe.AddMetadata("release", "1.21")  # accepts key-value pair
+  scribe.AddMetadata("release", "1.21")  // accepts key-value pair
 }
 ```
 
