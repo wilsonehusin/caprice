@@ -95,7 +95,7 @@ If the visualization were transformed to ASCII output, it will roughly look like
 40.130s  └ TestMyApp [DONE 40.130s]
 ```
 
-## Identifiers
+### Identifiers
 
 There are valid reasons to add more metadata into a given execution.
 This can be setup through `init()` or `CAPRICE_METADATA=`,  such as:
@@ -109,3 +109,10 @@ func init() {
 ```
 CAPRICE_METADATA='{"mode"="local"}'
 ```
+
+## Trivia
+
+The name _Caprice_ was taken from [24 Caprices](https://en.wikipedia.org/wiki/24_Caprices_for_Solo_Violin_(Paganini)) by Niccolò Paganini.
+The musical piece was an inspiration to [many other composers](https://en.wikipedia.org/wiki/Niccol%C3%B2_Paganini#Compositions).
+
+Just like the musical piece, this project brings value through repetition of test execution.
