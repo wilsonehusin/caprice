@@ -33,8 +33,8 @@ func thing2() error {}
 
 func RunSomething() {
   s := scribe.New("RunSomething")
-  s.Stage("thing1", thing1)
-  if err := s.StageErr("thing2", thing2); err != nil {
+  s.Run("thing1", thing1)
+  if err := s.RunErr("thing2", thing2); err != nil {
     // err here is just passed from the returned value of thing2
     panic(err)
   }
@@ -56,7 +56,7 @@ func runStuff() error {}
 func TestMyApp(t *testing.T) {
   s := scribe.NewT(t, "TestMyApp")
 
-  s.StageT("runStuff", runStuff) // internally calls t.Fatal() on error
+  s.RunT("runStuff", runStuff) // internally calls t.Fatal() on error
 
   err := runMoreStuff()
   s.Done(err) // if err != nil, internally call t.Fatal()
@@ -77,18 +77,18 @@ import (
 func TestMyApp(t *testing.T) {
   s := scribe.NewT(t, "TestMyApp")
 
-  s.Stage("prepare", prepareFunc)
+  s.Run("prepare", prepareFunc)
 
   thingsDone := s.NewStage("things")
-  s.StageT("do thing1", func() error {
+  s.RunT("do thing1", func() error {
     return thing1("some", "param")
   })
-  s.StageT("do thing2", func() error {
+  s.RunT("do thing2", func() error {
     return thing2("some", "other", "param")
   })
   thingsDone()
 
-  s.Stage("cleanup", cleanUpPotentiallySlowInfrastructure)
+  s.Run("cleanup", cleanUpPotentiallySlowInfrastructure)
   s.Done(nil)
 }
 ```
