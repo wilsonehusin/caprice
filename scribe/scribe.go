@@ -1,65 +1,93 @@
 package scribe
 
 import (
-	"fmt"
+	"context"
+	"os"
 	"strings"
+	"time"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 )
 
 var (
-	Source      string
-	Destination string
+	baseEvent = cloudevents.NewEvent()
+
+	tags = map[string]string{}
 )
 
-var (
-	eventTypePrefix = []string{
-		"run",
-		"caprice",
-	}
+const (
+	eventTypeStart   = "run.caprice.start"
+	eventTypeFinish  = "run.caprice.finish"
+	eventTypeSuccess = "run.caprice.success"
+	eventTypeFail    = "run.caprice.fail"
 )
 
-type Scribe struct {
-	bucket string
-	client cloudevents.Client
-	config ScribeConfig
+func init() {
+	baseEvent.SetSpecVersion("1.0")
+	baseEvent.SetSource("/caprice/scribe")
+	baseEvent.SetDataContentType("application/json")
 }
 
-type ScribeConfig struct {
-	Source      string
-	Destination string
-	Type        string
+func SetSource(str string) {
+	src := strings.TrimSuffix(str, "/")
+	baseEvent.SetSource(src)
+}
+
+type Scribe struct {
+	client    Sender
+	bucket    string
+	ExtraTags map[string]string
 }
 
 func New(bucket string) (*Scribe, error) {
-	client, err := cloudevents.NewClientHTTP()
-	if err != nil {
-		return nil, err
+	client := &StreamSender{Dest: os.Stdout}
+	s := &Scribe{
+		bucket: bucket,
+		client: client,
 	}
-	return &Scribe{bucket: bucket, client: client}, nil
+	s.sendEvent(eventTypeStart)
+	return s, nil
 }
 
 func (s *Scribe) Run(name string, stagedFunc func()) {
+	s.sendEvent(eventTypeStart, name)
 	stagedFunc()
+	s.sendEvent(eventTypeFinish, name)
 }
 
 func (s *Scribe) RunErr(name string, stagedFunc func() error) error {
-	return stagedFunc()
+	s.sendEvent(eventTypeStart, name)
+	eventStatus := eventTypeSuccess
+	err := stagedFunc()
+	if err != nil {
+		eventStatus = eventTypeFail
+	}
+	s.sendEvent(eventStatus, name)
+	return err
 }
 
-func (s *Scribe) Done(error) {}
-
-func (s *Scribe) NewStage(string) func() {
-	return func() {}
+func (s *Scribe) Done(err error) {
+	eventStatus := eventTypeSuccess
+	if err != nil {
+		eventStatus = eventTypeFail
+	}
+	s.sendEvent(eventStatus)
 }
 
-func (s *Scribe) newCloudEvent(eventType string) *cloudevents.Event {
-	event := cloudevents.NewEvent()
-	event.SetSource(fmt.Sprintf("caprice/%s", s.bucket))
-	event.SetType(eventType)
-	return &event
+func (s *Scribe) NewStage(name string) func() {
+	s.sendEvent(eventTypeStart, name)
+	return func() {
+		s.sendEvent(eventTypeFinish, name)
+	}
 }
 
-func newEventType(strs ...string) string {
-	return strings.Join(append(eventTypePrefix, strs...), ".")
+func (s *Scribe) sendEvent(eventType string, sourceSuffix ...string) {
+	e := baseEvent.Clone()
+	sourcePrefix := []string{e.Source()}
+	completeSource := strings.Join(append(sourcePrefix, sourceSuffix...), "/")
+	e.SetSource(completeSource)
+	e.SetType(eventType)
+	e.SetTime(time.Now())
+	// TODO: send in non-blocking goroutine call?
+	_ = s.client.Send(context.Background(), e)
 }
