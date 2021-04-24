@@ -2,7 +2,7 @@ package scribe
 
 import (
 	"context"
-	"os"
+	"io"
 	"strings"
 	"time"
 
@@ -11,8 +11,10 @@ import (
 
 var (
 	baseEvent = cloudevents.NewEvent()
+	tags      = map[string]string{}
 
-	tags = map[string]string{}
+	DestinationWriter io.Writer
+	Destination       string
 )
 
 const (
@@ -40,7 +42,10 @@ type Scribe struct {
 }
 
 func New(bucket string) (*Scribe, error) {
-	client := &StreamSender{Dest: os.Stdout}
+	client, err := NewSender()
+	if err != nil {
+		return nil, err
+	}
 	s := &Scribe{
 		bucket: bucket,
 		client: client,
