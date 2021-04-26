@@ -111,7 +111,7 @@ If the visualization were transformed to ASCII output, it will roughly look like
 
 ### Identifiers
 
-There are valid reasons to add more metadata into a given execution.
+[TODO] There are valid reasons to add more metadata into a given execution.
 This can be setup through `init()` or `CAPRICE_METADATA=`,  such as:
 
 ```go
