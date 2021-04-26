@@ -2,7 +2,11 @@ package scribe
 
 import (
 	"context"
+	"encoding/base32"
+	"fmt"
 	"io"
+	"math"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -11,10 +15,10 @@ import (
 
 var (
 	baseEvent = cloudevents.NewEvent()
-	tags      = map[string]string{}
 
 	DestinationWriter io.Writer
 	Destination       string
+	runtimeId         string
 )
 
 const (
@@ -24,10 +28,20 @@ const (
 	eventTypeFail    = "run.caprice.fail"
 )
 
+func genRandomB32(length int) string {
+	values := make([]byte, length)
+	for i := range values {
+		values[i] = uint8(rand.Intn(math.MaxUint8))
+	}
+	return base32.StdEncoding.EncodeToString(values)
+}
+
 func init() {
+	rand.Seed(time.Now().UnixNano())
+	runtimeId = genRandomB32(10)
+
 	baseEvent.SetSpecVersion("1.0")
 	baseEvent.SetSource("/caprice/scribe")
-	baseEvent.SetDataContentType("application/json")
 }
 
 func SetSource(str string) {
@@ -36,9 +50,9 @@ func SetSource(str string) {
 }
 
 type Scribe struct {
-	client    Sender
-	bucket    string
-	ExtraTags map[string]string
+	client Sender
+	bucket string
+	Tags   map[string]string
 }
 
 func New(bucket string) (*Scribe, error) {
@@ -49,6 +63,7 @@ func New(bucket string) (*Scribe, error) {
 	s := &Scribe{
 		bucket: bucket,
 		client: client,
+		Tags:   map[string]string{},
 	}
 	s.sendEvent(eventTypeStart)
 	return s, nil
@@ -88,11 +103,13 @@ func (s *Scribe) NewStage(name string) func() {
 
 func (s *Scribe) sendEvent(eventType string, sourceSuffix ...string) {
 	e := baseEvent.Clone()
-	sourcePrefix := []string{e.Source()}
+	sourcePrefix := []string{e.Source(), s.bucket}
 	completeSource := strings.Join(append(sourcePrefix, sourceSuffix...), "/")
 	e.SetSource(completeSource)
 	e.SetType(eventType)
 	e.SetTime(time.Now())
+	e.SetData("application/json", s.Tags)
+	e.SetID(fmt.Sprintf("r-%s-e-%s", runtimeId, genRandomB32(10)))
 	// TODO: send in non-blocking goroutine call?
 	_ = s.client.Send(context.Background(), e)
 }

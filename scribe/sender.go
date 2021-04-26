@@ -23,7 +23,7 @@ func NewSender() (Sender, error) {
 	switch {
 	case DestinationWriter != nil:
 		s = &StreamSender{Dest: DestinationWriter}
-	case strings.HasPrefix(Destination, "http://"):
+	case strings.HasPrefix(Destination, "http://"), strings.HasPrefix(Destination, "https://"):
 		protocol, err := cloudevents.NewHTTP(
 			cloudevents.WithTarget(Destination),
 		)
