@@ -6,7 +6,7 @@ Caprice allows you to have better visibility in your time-intensive code by emit
 
 ### Basic
 
-Upon execution, `STDOUT` should have a report of the following:
+[TODO] Upon execution, `STDOUT` should have a report of the following:
 
 ```json
 {
