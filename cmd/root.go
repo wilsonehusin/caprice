@@ -44,7 +44,7 @@ var rootCmd = &cobra.Command{
 	PersistentPreRun: rootCmdInit,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("%+v\n\n", rootOpts)
-		cmd.Help()
+		_ = cmd.Help()
 	},
 }
 

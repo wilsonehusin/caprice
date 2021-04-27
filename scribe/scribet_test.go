@@ -15,10 +15,6 @@ func (f *fakeTestingT) Fatal(errs ...interface{}) {
 	f.AttachedErrs = errs
 }
 
-func init() {
-	Destination = "http://localhost:8080"
-}
-
 func TestTriggerFatal(t *testing.T) {
 	fakeT := &fakeTestingT{}
 

@@ -11,10 +11,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type Server struct {
-	opts ServerOptions
-}
-
 type ServerOptions struct {
 	Port int `default:"8080" required:"true"`
 }
