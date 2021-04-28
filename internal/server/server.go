@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"time"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/rs/zerolog/log"
@@ -28,17 +29,22 @@ func Run(opts ServerOptions) error {
 
 	go func() {
 		log.Info().Int("port", opts.Port).Msg("starting receiver")
-		if err := client.StartReceiver(ctx, processEvent); err != nil {
-			log.Err(err).Err(ctx.Err()).Msg("shutdown listener")
-			receiverStop <- true
-		}
+
+		// Blocking call
+		err := client.StartReceiver(ctx, processEvent)
+
+		log.Err(err).Err(ctx.Err()).Msg("shutdown receiver")
+		receiverStop <- true
 	}()
 
+	<-ctx.Done()
+	log.Err(ctx.Err()).Msg("gracefully shutting down (10s timeout)")
+
 	select {
-	case <-ctx.Done():
-		log.Err(ctx.Err()).Msg("context cancelled")
 	case <-receiverStop:
 		log.Info().Msg("receiver shut down")
+	case <-time.After(10 * time.Second):
+		log.Error().Msg("deadline exceeded, forcibly shutting down")
 	}
 	cancel()
 
