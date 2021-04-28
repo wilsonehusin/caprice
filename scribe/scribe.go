@@ -108,7 +108,8 @@ func (s *Scribe) sendEvent(eventType string, sourceSuffix ...string) {
 	e.SetSource(completeSource)
 	e.SetType(eventType)
 	e.SetTime(time.Now())
-	e.SetData("application/json", s.Tags)
+	// TODO: handle error?
+	_ = e.SetData("application/json", s.Tags)
 	e.SetID(fmt.Sprintf("r-%s-e-%s", runtimeId, genRandomB32(10)))
 	// TODO: send in non-blocking goroutine call?
 	_ = s.client.Send(context.Background(), e)

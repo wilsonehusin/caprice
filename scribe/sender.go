@@ -24,16 +24,13 @@ func NewSender() (Sender, error) {
 	case DestinationWriter != nil:
 		s = &StreamSender{Dest: DestinationWriter}
 	case strings.HasPrefix(Destination, "http://"), strings.HasPrefix(Destination, "https://"):
-		protocol, err := cloudevents.NewHTTP(
+		client, err := cloudevents.NewClientHTTP(
 			cloudevents.WithTarget(Destination),
 		)
 		if err != nil {
 			return nil, err
 		}
-		s, err = cloudevents.NewClient(protocol)
-		if err != nil {
-			return nil, err
-		}
+		s = client
 	case strings.HasPrefix(Destination, "file://"):
 		// TODO: open file, pass the file to StreamSender
 		fallthrough
