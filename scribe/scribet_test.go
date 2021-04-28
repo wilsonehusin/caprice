@@ -2,6 +2,7 @@ package scribe
 
 import (
 	"fmt"
+	"os"
 	"testing"
 )
 
@@ -13,6 +14,14 @@ type fakeTestingT struct {
 func (f *fakeTestingT) Fatal(errs ...interface{}) {
 	f.Called = true
 	f.AttachedErrs = errs
+}
+
+func init() {
+	SetSource("github.com/wilsonehusin/caprice/scribe")
+
+	if dest := os.Getenv("CAPRICE_DESTINATION"); dest != "" {
+		Destination = dest
+	}
 }
 
 func TestTriggerFatal(t *testing.T) {
