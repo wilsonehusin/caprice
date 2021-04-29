@@ -36,11 +36,7 @@ func NewExecStreams(logDir string) (*ExecStreams, error) {
 	e := &ExecStreams{}
 
 	if logDir == "" {
-		cwd, err := os.Getwd()
-		if err != nil {
-			return nil, err
-		}
-		logDir = cwd
+		logDir = os.TempDir()
 	}
 
 	stdoutLogFile, err := os.Create(path.Join(
