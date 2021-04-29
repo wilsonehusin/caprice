@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -36,8 +37,10 @@ func NewSender() (Sender, error) {
 		fallthrough
 	case Destination == "stderr":
 		s = &StreamSender{Dest: os.Stderr}
+	case Destination == "stdout":
+		s = &StreamSender{Dest: os.Stderr}
 	default:
-		s = &StreamSender{Dest: os.Stdout}
+		s = &StreamSender{Dest: ioutil.Discard}
 	}
 	return s, nil
 }

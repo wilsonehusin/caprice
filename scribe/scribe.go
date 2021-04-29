@@ -15,21 +15,25 @@ var (
 
 	DestinationWriter io.Writer
 	Destination       string
-	runtimeId         string
+	runtimeID         string
 )
 
 const (
-	eventTypeStart   = "run.caprice.start"
-	eventTypeFinish  = "run.caprice.finish"
-	eventTypeSuccess = "run.caprice.success"
-	eventTypeFail    = "run.caprice.fail"
+	EventTypeStart   = "run.caprice.start"
+	EventTypeFinish  = "run.caprice.finish"
+	EventTypeSuccess = "run.caprice.success"
+	EventTypeFail    = "run.caprice.fail"
 )
 
 func init() {
-	runtimeId = uuid.New().String()
+	runtimeID = uuid.New().String()
 
 	baseEvent.SetSpecVersion("1.0")
 	baseEvent.SetSource("")
+}
+
+func RuntimeID() string {
+	return runtimeID
 }
 
 func SetSource(str string) {
@@ -38,8 +42,9 @@ func SetSource(str string) {
 }
 
 type Scribe struct {
-	client Sender
 	bucket string
+	client Sender
+	errors map[string]interface{}
 	Tags   map[string]interface{}
 }
 
@@ -51,54 +56,59 @@ func New(bucket string) (*Scribe, error) {
 	s := &Scribe{
 		bucket: bucket,
 		client: client,
+		errors: map[string]interface{}{},
 		Tags:   map[string]interface{}{},
 	}
-	s.sendEvent(eventTypeStart, "")
+	s.sendEvent(EventTypeStart, "root")
 	return s, nil
 }
 
 func (s *Scribe) Run(name string, stagedFunc func()) {
-	s.sendEvent(eventTypeStart, name)
+	s.sendEvent(EventTypeStart, name)
 	stagedFunc()
-	s.sendEvent(eventTypeFinish, name)
+	s.sendEvent(EventTypeFinish, name)
 }
 
 func (s *Scribe) RunErr(name string, stagedFunc func() error) error {
-	s.sendEvent(eventTypeStart, name)
-	eventStatus := eventTypeSuccess
+	s.sendEvent(EventTypeStart, name)
+	eventStatus := EventTypeSuccess
 	err := stagedFunc()
 	if err != nil {
-		eventStatus = eventTypeFail
+		eventStatus = EventTypeFail
+		s.errors[name] = err.Error()
 	}
 	s.sendEvent(eventStatus, name)
 	return err
 }
 
-func (s *Scribe) Done(err error) {
-	eventStatus := eventTypeSuccess
+func (s *Scribe) Done(err error) error {
+	eventStatus := EventTypeSuccess
 	if err != nil {
-		eventStatus = eventTypeFail
+		eventStatus = EventTypeFail
+		s.errors["root"] = err.Error()
 	}
-	s.sendEvent(eventStatus, "")
+	s.sendEvent(eventStatus, "root")
+	return err
 }
 
 func (s *Scribe) NewStage(name string) func() {
-	s.sendEvent(eventTypeStart, name)
+	s.sendEvent(EventTypeStart, name)
 	return func() {
-		s.sendEvent(eventTypeFinish, name)
+		s.sendEvent(EventTypeFinish, name)
 	}
 }
 
-func (s *Scribe) sendEvent(eventType string, eventName string) {
+func (s *Scribe) sendEvent(EventType string, eventName string) {
 	e := baseEvent.Clone()
-	e.SetType(eventType)
+	e.SetType(EventType)
 	e.SetTime(time.Now())
 	// TODO: handle error?
 	_ = e.SetData("application/json", map[string]interface{}{
 		"tags":    s.Tags,
-		"runtime": runtimeId,
+		"runtime": runtimeID,
 		"bucket":  s.bucket,
 		"name":    eventName,
+		"errors":  s.errors,
 	})
 	e.SetID(uuid.New().String())
 	// TODO: send in non-blocking goroutine call?

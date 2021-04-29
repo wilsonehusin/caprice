@@ -84,4 +84,5 @@ func init() {
 	rootCmd.SetUsageTemplate(rootCmd.UsageTemplate() + optionsUsageHeader + rootCmdOptionsUsage() + "\n")
 
 	rootCmd.AddCommand(serverCmd)
+	rootCmd.AddCommand(execCmd)
 }
