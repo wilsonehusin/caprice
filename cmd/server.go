@@ -32,7 +32,7 @@ func loadServerOpts(cmd *cobra.Command, args []string) {
 
 func init() {
 	var optionsUsage bytes.Buffer
-	if err := envconfig.Usagef(rootCmdName+"_server", &serverOpts, &optionsUsage, optionsUsageTemplate); err != nil {
+	if err := envconfig.Usagef(rootCmdName, &serverOpts, &optionsUsage, optionsUsageTemplate); err != nil {
 		log.Fatal().Err(err).Msg("failed to retrieve server options usage")
 	}
 	serverCmd.SetUsageTemplate(serverCmd.UsageTemplate() + optionsUsage.String() + "\n")

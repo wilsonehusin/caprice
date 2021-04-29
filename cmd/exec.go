@@ -26,14 +26,14 @@ still forwarding Stdout and Stderr as if the program is exec natively.`,
 }
 
 func loadexecOpts(cmd *cobra.Command, args []string) {
-	if err := envconfig.Process(rootCmdName+"_exec", execOpts); err != nil {
+	if err := envconfig.Process(rootCmdName, execOpts); err != nil {
 		log.Fatal().Err(err).Msg("failed to process exec options")
 	}
 }
 
 func init() {
 	var optionsUsage bytes.Buffer
-	if err := envconfig.Usagef(rootCmdName+"_exec", execOpts, &optionsUsage, optionsUsageTemplate); err != nil {
+	if err := envconfig.Usagef(rootCmdName, execOpts, &optionsUsage, optionsUsageTemplate); err != nil {
 		log.Fatal().Err(err).Msg("failed to retrieve exec options usage")
 	}
 	execCmd.SetUsageTemplate(execCmd.UsageTemplate() + optionsUsage.String() + "\n")
