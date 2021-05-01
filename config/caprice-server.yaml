@@ -1,0 +1,45 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: caprice-server
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+  labels:
+    app: caprice-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: caprice-server
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+      labels:
+        app: caprice-server
+    spec:
+      containers:
+      - name: caprice-server
+        image: ko://github.com/wilsonehusin/caprice
+        args: ["server"]
+        ports:
+          - containerPort: 8080 # event receiver
+          - containerPort: 9090 # metrics endpoint
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: caprice-server
+spec:
+  selector:
+    app: caprice-server
+  ports:
+    - name: cloudevents
+      protocol: TCP
+      port: 9090
+    - name: metrics
+      protocol: TCP
+      port: 8080

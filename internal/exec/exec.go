@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -33,8 +34,8 @@ func Run(opts *ExecOptions, args []string) error {
 	var scribeErr error
 	defer func() { s.Done(scribeErr) }()
 
-	s.Tags["ExecOptions"] = opts
-	s.Tags["args"] = args
+	s.Metadata["options"] = opts
+	s.Tags["args"] = strings.Join(args, " ")
 
 	setupEnvDone := s.NewStage("setup environment")
 

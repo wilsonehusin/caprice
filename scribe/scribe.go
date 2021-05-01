@@ -42,10 +42,11 @@ func SetSource(str string) {
 }
 
 type Scribe struct {
-	bucket string
-	client Sender
-	errors map[string]interface{}
-	Tags   map[string]interface{}
+	client   Sender
+	Bucket   string
+	Errors   map[string]string
+	Tags     map[string]string
+	Metadata map[string]interface{}
 }
 
 func New(bucket string) (*Scribe, error) {
@@ -54,10 +55,11 @@ func New(bucket string) (*Scribe, error) {
 		return nil, err
 	}
 	s := &Scribe{
-		bucket: bucket,
-		client: client,
-		errors: map[string]interface{}{},
-		Tags:   map[string]interface{}{},
+		client:   client,
+		Bucket:   bucket,
+		Errors:   map[string]string{},
+		Tags:     map[string]string{},
+		Metadata: map[string]interface{}{},
 	}
 	s.sendEvent(EventTypeStart, "root")
 	return s, nil
@@ -75,7 +77,7 @@ func (s *Scribe) RunErr(name string, stagedFunc func() error) error {
 	err := stagedFunc()
 	if err != nil {
 		eventStatus = EventTypeFail
-		s.errors[name] = err.Error()
+		s.Errors[name] = err.Error()
 	}
 	s.sendEvent(eventStatus, name)
 	return err
@@ -85,7 +87,7 @@ func (s *Scribe) Done(err error) error {
 	eventStatus := EventTypeSuccess
 	if err != nil {
 		eventStatus = EventTypeFail
-		s.errors["root"] = err.Error()
+		s.Errors["root"] = err.Error()
 	}
 	s.sendEvent(eventStatus, "root")
 	return err
@@ -98,17 +100,25 @@ func (s *Scribe) NewStage(name string) func() {
 	}
 }
 
+type ScribeEventData struct {
+	Scribe
+	Name      string
+	RuntimeID string
+}
+
+func (s *ScribeEventData) CanonicalName() string {
+	return strings.Join([]string{s.RuntimeID, s.Bucket, s.Name}, "-")
+}
+
 func (s *Scribe) sendEvent(EventType string, eventName string) {
 	e := baseEvent.Clone()
 	e.SetType(EventType)
 	e.SetTime(time.Now())
 	// TODO: handle error?
-	_ = e.SetData("application/json", map[string]interface{}{
-		"tags":    s.Tags,
-		"runtime": runtimeID,
-		"bucket":  s.bucket,
-		"name":    eventName,
-		"errors":  s.errors,
+	_ = e.SetData("application/json", ScribeEventData{
+		Scribe:    *s,
+		Name:      eventName,
+		RuntimeID: runtimeID,
 	})
 	e.SetID(uuid.New().String())
 	// TODO: send in non-blocking goroutine call?
