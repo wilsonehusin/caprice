@@ -18,21 +18,20 @@ func NewT(t TestFataler, bucket string) (*ScribeT, error) {
 }
 
 func (s *ScribeT) RunT(name string, stagedFunc func() error) {
-	s.sendEvent(EventTypeStart, name)
-	if err := stagedFunc(); err != nil {
-		s.sendEvent(EventTypeFail, name)
+	if err := s.RunErr(name, stagedFunc); err != nil {
 		s.testingT.Fatal(err)
 	}
-	s.sendEvent(EventTypeSuccess, name)
 }
 
 func (s *ScribeT) NewStageT(name string) func(error) {
 	s.sendEvent(EventTypeStart, name)
 	return func(err error) {
+		defer s.sendEvent(EventTypeFinish, name)
 		if err != nil {
-			s.sendEvent(EventTypeFail, name)
+			s.Tags["result"] = "fail"
 			s.testingT.Fatal(err)
+		} else {
+			s.Tags["result"] = "pass"
 		}
-		s.sendEvent(EventTypeSuccess, name)
 	}
 }

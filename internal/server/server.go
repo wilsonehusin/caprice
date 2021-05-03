@@ -69,7 +69,7 @@ func processEvent(e cloudevents.Event) {
 	switch eventType {
 	case scribe.EventTypeStart:
 		metric.IncScribe(scribeEventData.CanonicalName())
-	case scribe.EventTypeFinish, scribe.EventTypeFail, scribe.EventTypeSuccess:
+	case scribe.EventTypeFinish:
 		metric.DecScribe(scribeEventData.CanonicalName())
 	default:
 		log.Error().Str("eventType", eventType).Msg("unrecognized CloudEvent type")

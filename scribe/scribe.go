@@ -19,10 +19,8 @@ var (
 )
 
 const (
-	EventTypeStart   = "run.caprice.start"
-	EventTypeFinish  = "run.caprice.finish"
-	EventTypeSuccess = "run.caprice.success"
-	EventTypeFail    = "run.caprice.fail"
+	EventTypeStart  = "run.caprice.start"
+	EventTypeFinish = "run.caprice.finish"
 )
 
 func init() {
@@ -65,31 +63,36 @@ func New(bucket string) (*Scribe, error) {
 	return s, nil
 }
 
+func (s *Scribe) Done(err error) error {
+	defer s.sendEvent(EventTypeFinish, "root")
+
+	if err != nil {
+		s.Errors["root"] = err.Error()
+		s.Tags["result"] = "error"
+	} else {
+		s.Tags["result"] = "success"
+	}
+	return err
+}
+
 func (s *Scribe) Run(name string, stagedFunc func()) {
 	s.sendEvent(EventTypeStart, name)
+	defer s.sendEvent(EventTypeFinish, name)
+
 	stagedFunc()
-	s.sendEvent(EventTypeFinish, name)
 }
 
 func (s *Scribe) RunErr(name string, stagedFunc func() error) error {
 	s.sendEvent(EventTypeStart, name)
-	eventStatus := EventTypeSuccess
+	defer s.sendEvent(EventTypeFinish, name)
+
 	err := stagedFunc()
 	if err != nil {
-		eventStatus = EventTypeFail
 		s.Errors[name] = err.Error()
+		s.Tags["result"] = "error"
+	} else {
+		s.Tags["result"] = "success"
 	}
-	s.sendEvent(eventStatus, name)
-	return err
-}
-
-func (s *Scribe) Done(err error) error {
-	eventStatus := EventTypeSuccess
-	if err != nil {
-		eventStatus = EventTypeFail
-		s.Errors["root"] = err.Error()
-	}
-	s.sendEvent(eventStatus, "root")
 	return err
 }
 
