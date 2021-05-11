@@ -41,10 +41,10 @@ func SetSource(str string) {
 
 type Scribe struct {
 	client   Sender
-	Bucket   string
-	Errors   map[string]string
-	Tags     map[string]string
-	Metadata map[string]interface{}
+	Bucket   string                 `json:"bucket"`
+	Errors   map[string]string      `json:"errors"`
+	Tags     map[string]string      `json:"tags"`
+	Metadata map[string]interface{} `json:"metadata"`
 }
 
 func New(bucket string) (*Scribe, error) {
@@ -105,8 +105,8 @@ func (s *Scribe) NewStage(name string) func() {
 
 type ScribeEventData struct {
 	Scribe
-	Name      string
-	RuntimeID string
+	Name      string `json:"name"`
+	RuntimeID string `json:"runtime_id"`
 }
 
 func (s *ScribeEventData) CanonicalName() string {

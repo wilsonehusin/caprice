@@ -80,5 +80,5 @@ func processEvent(e cloudevents.Event) {
 		log.Error().Err(err).Msg("unable to convert CloudEvent as JSON")
 		return
 	}
-	log.Info().RawJSON("eventData", eventData).Send()
+	log.Info().RawJSON("event", eventData).Send()
 }
