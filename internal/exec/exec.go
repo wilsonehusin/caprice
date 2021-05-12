@@ -6,25 +6,42 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"github.com/wilsonehusin/caprice/internal/buildinfo"
 	"github.com/wilsonehusin/caprice/scribe"
 )
 
 type ExecOptions struct {
-	Destination string
-	Source      string
-	Bucket      string
-	LogDir      string
-	Timeout     string
+	Destination string `json:"destination,omitempty"`
+	Source      string `json:"source,omitempty"`
+	Bucket      string `json:"bucket,omitempty"`
+	LogDir      string `json:"logDir,omitempty"`
+	Timeout     string `json:"timeout,omitempty"`
 }
 
 func Run(opts *ExecOptions, args []string) error {
-	scribe.Destination = opts.Destination
-	scribe.SetSource(opts.Source)
+	if opts.Destination == "" {
+		scribe.Destination = buildinfo.Server
+	} else {
+		scribe.Destination = opts.Destination
+	}
+	if opts.Source == "" {
+		hostname, err := os.Hostname()
+		if err != nil {
+			scribe.SetSource("exec.caprice")
+		}
+		scribe.SetSource(hostname)
+	} else {
+		scribe.SetSource(opts.Source)
+	}
 
-	s, err := scribe.New(opts.Bucket)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
+	defer cancel()
+
+	s, err := scribe.NewWithContext(opts.Bucket, ctx)
 	if err != nil {
 		return err
 	}
@@ -33,17 +50,14 @@ func Run(opts *ExecOptions, args []string) error {
 	var scribeErr error
 	defer func() { s.Done(scribeErr) }()
 
-	s.Tags["ExecOptions"] = opts
-	s.Tags["args"] = args
+	s.Metadata["options"] = opts
+	s.Tags["args"] = strings.Join(args, " ")
 
 	setupEnvDone := s.NewStage("setup environment")
 
 	if len(args) == 0 {
 		return fmt.Errorf("no command was specified")
 	}
-
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
 
 	streams, err := NewExecStreams(opts.LogDir)
 	if err != nil {
@@ -66,18 +80,18 @@ func Run(opts *ExecOptions, args []string) error {
 
 	setupEnvDone()
 
-	done := make(chan bool)
+	cmdDone := make(chan bool)
 	go func() {
 		scribeErr = s.RunErr("executing command", cmd.Run)
-		done <- true
+		cmdDone <- true
 	}()
 
 	select {
-	case <-done:
+	case <-cmdDone:
 	case <-ctx.Done():
 		log.Info().Msg("allowing graceful shutdown with 3s timeout")
 		select {
-		case <-done:
+		case <-cmdDone:
 		case <-time.After(3 * time.Second):
 			if scribeErr == nil {
 				scribeErr = fmt.Errorf("timeout waiting for command to shutdown")

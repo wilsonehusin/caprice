@@ -19,10 +19,9 @@ var (
 )
 
 const (
-	EventTypeStart   = "run.caprice.start"
-	EventTypeFinish  = "run.caprice.finish"
-	EventTypeSuccess = "run.caprice.success"
-	EventTypeFail    = "run.caprice.fail"
+	EventTypeStart  = "run.caprice.start"
+	EventTypeFinish = "run.caprice.finish"
+	EventTypePulse  = "run.caprice.pulse"
 )
 
 func init() {
@@ -42,60 +41,118 @@ func SetSource(str string) {
 }
 
 type Scribe struct {
-	bucket string
-	client Sender
-	errors map[string]interface{}
-	Tags   map[string]interface{}
+	client    Sender
+	ctx       context.Context
+	stopPulse context.CancelFunc
+	Bucket    string                 `json:"bucket"`
+	Errors    map[string]string      `json:"errors"`
+	Tags      map[string]string      `json:"tags"`
+	Metadata  map[string]interface{} `json:"metadata"`
 }
 
 func New(bucket string) (*Scribe, error) {
+	return NewWithContext(bucket, context.Background())
+}
+
+func NewWithContext(bucket string, ctx context.Context) (*Scribe, error) {
 	client, err := NewSender()
 	if err != nil {
 		return nil, err
 	}
+	ctx, cancel := context.WithCancel(ctx)
 	s := &Scribe{
-		bucket: bucket,
-		client: client,
-		errors: map[string]interface{}{},
-		Tags:   map[string]interface{}{},
+		client:    client,
+		ctx:       ctx,
+		stopPulse: cancel,
+		Bucket:    bucket,
+		Errors:    map[string]string{},
+		Tags:      map[string]string{},
+		Metadata:  map[string]interface{}{},
 	}
+
+	go s.pulse(ctx, "root")
+
 	s.sendEvent(EventTypeStart, "root")
 	return s, nil
+
+}
+
+func (s *Scribe) pulse(ctx context.Context, name string) {
+	ticker := time.NewTicker(5 * time.Second)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.sendEvent(EventTypePulse, name)
+		}
+	}
+}
+
+func (s *Scribe) Done(err error) error {
+	defer s.sendEvent(EventTypeFinish, "root")
+	defer s.stopPulse()
+
+	if err != nil {
+		s.Errors["root"] = err.Error()
+		s.Tags["result"] = "error"
+	} else {
+		s.Tags["result"] = "success"
+	}
+	return err
 }
 
 func (s *Scribe) Run(name string, stagedFunc func()) {
 	s.sendEvent(EventTypeStart, name)
+	defer s.sendEvent(EventTypeFinish, name)
+
+	ctx, stopPulse := context.WithCancel(s.ctx)
+
+	go s.pulse(ctx, name)
+	defer stopPulse()
+
 	stagedFunc()
-	s.sendEvent(EventTypeFinish, name)
 }
 
 func (s *Scribe) RunErr(name string, stagedFunc func() error) error {
 	s.sendEvent(EventTypeStart, name)
-	eventStatus := EventTypeSuccess
+	defer s.sendEvent(EventTypeFinish, name)
+
+	ctx, stopPulse := context.WithCancel(s.ctx)
+
+	go s.pulse(ctx, name)
+	defer stopPulse()
+
 	err := stagedFunc()
 	if err != nil {
-		eventStatus = EventTypeFail
-		s.errors[name] = err.Error()
+		s.Errors[name] = err.Error()
+		s.Tags["result"] = "error"
+	} else {
+		s.Tags["result"] = "success"
 	}
-	s.sendEvent(eventStatus, name)
-	return err
-}
-
-func (s *Scribe) Done(err error) error {
-	eventStatus := EventTypeSuccess
-	if err != nil {
-		eventStatus = EventTypeFail
-		s.errors["root"] = err.Error()
-	}
-	s.sendEvent(eventStatus, "root")
 	return err
 }
 
 func (s *Scribe) NewStage(name string) func() {
 	s.sendEvent(EventTypeStart, name)
+	ctx, stopPulse := context.WithCancel(s.ctx)
+
+	go s.pulse(ctx, name)
+
 	return func() {
+		stopPulse()
 		s.sendEvent(EventTypeFinish, name)
 	}
+}
+
+type ScribeEventData struct {
+	Scribe
+	Name      string `json:"name"`
+	RuntimeID string `json:"runtime_id"`
+}
+
+func (s *ScribeEventData) CanonicalName() string {
+	return strings.Join([]string{s.RuntimeID, s.Bucket, s.Name}, "-")
 }
 
 func (s *Scribe) sendEvent(EventType string, eventName string) {
@@ -103,12 +160,10 @@ func (s *Scribe) sendEvent(EventType string, eventName string) {
 	e.SetType(EventType)
 	e.SetTime(time.Now())
 	// TODO: handle error?
-	_ = e.SetData("application/json", map[string]interface{}{
-		"tags":    s.Tags,
-		"runtime": runtimeID,
-		"bucket":  s.bucket,
-		"name":    eventName,
-		"errors":  s.errors,
+	_ = e.SetData("application/json", ScribeEventData{
+		Scribe:    *s,
+		Name:      eventName,
+		RuntimeID: runtimeID,
 	})
 	e.SetID(uuid.New().String())
 	// TODO: send in non-blocking goroutine call?

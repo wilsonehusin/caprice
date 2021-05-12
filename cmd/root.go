@@ -43,7 +43,6 @@ var rootCmd = &cobra.Command{
 	Long:             `Caprice provides visibility to execution time and progress`,
 	PersistentPreRun: rootCmdInit,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("%+v\n\n", rootOpts)
 		_ = cmd.Help()
 	},
 }
@@ -85,4 +84,5 @@ func init() {
 
 	rootCmd.AddCommand(serverCmd)
 	rootCmd.AddCommand(execCmd)
+	rootCmd.AddCommand(versionCmd)
 }

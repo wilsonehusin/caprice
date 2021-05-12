@@ -12,9 +12,9 @@ GOVERSION=$(shell go env GOVERSION)
 REPO_ROOT=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 TARGET_IMAGES=$(shell docker image ls --all --format "{{.Repository}}:{{.Tag}}" | grep caprice)
 
-VERSION_FLAG=-X=$(GOTARGET)/internal.Version=$(GIT_TAG)
-GIT_SHA_FLAG=-X=$(GOTARGET)/internal.GitSHA=$(GIT_SHA)
-COMPILER_FLAG=-X=$(GOTARGET)/internal.Go=$(GOVERSION)
+VERSION_FLAG=-X=$(GOTARGET)/internal/buildinfo.Version=$(GIT_TAG)
+GIT_SHA_FLAG=-X=$(GOTARGET)/internal/buildinfo.GitSHA=$(GIT_SHA)
+COMPILER_FLAG=-X=$(GOTARGET)/internal/buildinfo.Go=$(GOVERSION)
 
 BUILD_FLAGS=-ldflags '$(VERSION_FLAG) $(GIT_SHA_FLAG) $(COMPILER_FLAG)'
 TEST_BUILD_FLAGS=-ldflags '$(VERSION_FLAG) $(GIT_SHA_FLAG) $(COMPILER_FLAG)'
@@ -56,4 +56,4 @@ release: container
 .PHONY: clean
 clean:
 	rm -rf $(REPO_ROOT)/$(OUT_DIR)
-	@docker image rm $(caprice_IMAGES) 2>/dev/null || true
+	@docker image rm $(TARGET_IMAGES) 2>/dev/null || true
