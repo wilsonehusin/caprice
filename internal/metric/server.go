@@ -30,6 +30,8 @@ func StartMetricsServer(ctx context.Context, cancel func(), port int, pushGatewa
 		cancel()
 	}()
 
+	go trackScribeTimeout(ctx)
+
 	<-ctx.Done()
 	log.Info().Msg("shutting down metrics endpoint")
 	ctxServer, cancel := context.WithTimeout(context.Background(), 10*time.Second)

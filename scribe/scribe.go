@@ -21,6 +21,7 @@ var (
 const (
 	EventTypeStart  = "run.caprice.start"
 	EventTypeFinish = "run.caprice.finish"
+	EventTypePulse  = "run.caprice.pulse"
 )
 
 func init() {
@@ -40,31 +41,57 @@ func SetSource(str string) {
 }
 
 type Scribe struct {
-	client   Sender
-	Bucket   string                 `json:"bucket"`
-	Errors   map[string]string      `json:"errors"`
-	Tags     map[string]string      `json:"tags"`
-	Metadata map[string]interface{} `json:"metadata"`
+	client    Sender
+	ctx       context.Context
+	stopPulse context.CancelFunc
+	Bucket    string                 `json:"bucket"`
+	Errors    map[string]string      `json:"errors"`
+	Tags      map[string]string      `json:"tags"`
+	Metadata  map[string]interface{} `json:"metadata"`
 }
 
 func New(bucket string) (*Scribe, error) {
+	return NewWithContext(bucket, context.Background())
+}
+
+func NewWithContext(bucket string, ctx context.Context) (*Scribe, error) {
 	client, err := NewSender()
 	if err != nil {
 		return nil, err
 	}
+	ctx, cancel := context.WithCancel(ctx)
 	s := &Scribe{
-		client:   client,
-		Bucket:   bucket,
-		Errors:   map[string]string{},
-		Tags:     map[string]string{},
-		Metadata: map[string]interface{}{},
+		client:    client,
+		ctx:       ctx,
+		stopPulse: cancel,
+		Bucket:    bucket,
+		Errors:    map[string]string{},
+		Tags:      map[string]string{},
+		Metadata:  map[string]interface{}{},
 	}
+
+	go s.pulse(ctx, "root")
+
 	s.sendEvent(EventTypeStart, "root")
 	return s, nil
+
+}
+
+func (s *Scribe) pulse(ctx context.Context, name string) {
+	ticker := time.NewTicker(5 * time.Second)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.sendEvent(EventTypePulse, name)
+		}
+	}
 }
 
 func (s *Scribe) Done(err error) error {
 	defer s.sendEvent(EventTypeFinish, "root")
+	defer s.stopPulse()
 
 	if err != nil {
 		s.Errors["root"] = err.Error()
@@ -79,12 +106,22 @@ func (s *Scribe) Run(name string, stagedFunc func()) {
 	s.sendEvent(EventTypeStart, name)
 	defer s.sendEvent(EventTypeFinish, name)
 
+	ctx, stopPulse := context.WithCancel(s.ctx)
+
+	go s.pulse(ctx, name)
+	defer stopPulse()
+
 	stagedFunc()
 }
 
 func (s *Scribe) RunErr(name string, stagedFunc func() error) error {
 	s.sendEvent(EventTypeStart, name)
 	defer s.sendEvent(EventTypeFinish, name)
+
+	ctx, stopPulse := context.WithCancel(s.ctx)
+
+	go s.pulse(ctx, name)
+	defer stopPulse()
 
 	err := stagedFunc()
 	if err != nil {
@@ -98,7 +135,12 @@ func (s *Scribe) RunErr(name string, stagedFunc func() error) error {
 
 func (s *Scribe) NewStage(name string) func() {
 	s.sendEvent(EventTypeStart, name)
+	ctx, stopPulse := context.WithCancel(s.ctx)
+
+	go s.pulse(ctx, name)
+
 	return func() {
+		stopPulse()
 		s.sendEvent(EventTypeFinish, name)
 	}
 }

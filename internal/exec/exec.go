@@ -14,18 +14,21 @@ import (
 )
 
 type ExecOptions struct {
-	Destination string
-	Source      string
-	Bucket      string
-	LogDir      string
-	Timeout     string
+	Destination string `json:"destination,omitempty"`
+	Source      string `json:"source,omitempty"`
+	Bucket      string `json:"bucket,omitempty"`
+	LogDir      string `json:"logDir,omitempty"`
+	Timeout     string `json:"timeout,omitempty"`
 }
 
 func Run(opts *ExecOptions, args []string) error {
 	scribe.Destination = opts.Destination
 	scribe.SetSource(opts.Source)
 
-	s, err := scribe.New(opts.Bucket)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
+	defer cancel()
+
+	s, err := scribe.NewWithContext(opts.Bucket, ctx)
 	if err != nil {
 		return err
 	}
@@ -42,9 +45,6 @@ func Run(opts *ExecOptions, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("no command was specified")
 	}
-
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
 
 	streams, err := NewExecStreams(opts.LogDir)
 	if err != nil {
@@ -67,18 +67,18 @@ func Run(opts *ExecOptions, args []string) error {
 
 	setupEnvDone()
 
-	done := make(chan bool)
+	cmdDone := make(chan bool)
 	go func() {
 		scribeErr = s.RunErr("executing command", cmd.Run)
-		done <- true
+		cmdDone <- true
 	}()
 
 	select {
-	case <-done:
+	case <-cmdDone:
 	case <-ctx.Done():
 		log.Info().Msg("allowing graceful shutdown with 3s timeout")
 		select {
-		case <-done:
+		case <-cmdDone:
 		case <-time.After(3 * time.Second):
 			if scribeErr == nil {
 				scribeErr = fmt.Errorf("timeout waiting for command to shutdown")

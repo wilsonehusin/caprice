@@ -18,7 +18,7 @@ import (
 type ServerOptions struct {
 	EventsPort  int    `default:"8080" required:"true"`
 	MetricsPort int    `default:"9090" required:"true"`
-	PushGateway string `default:"localhost:9091", required:"true"`
+	PushGateway string `default:"localhost:9091" required:"true"`
 }
 
 func Run(opts ServerOptions) error {
@@ -69,6 +69,8 @@ func processEvent(e cloudevents.Event) {
 	switch eventType {
 	case scribe.EventTypeStart:
 		metric.IncScribe(scribeEventData.CanonicalName())
+	case scribe.EventTypePulse:
+		metric.PulseScribe(scribeEventData.CanonicalName())
 	case scribe.EventTypeFinish:
 		metric.DecScribe(scribeEventData.CanonicalName())
 	default:
