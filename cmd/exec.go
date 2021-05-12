@@ -7,7 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
-	"github.com/wilsonehusin/caprice/internal/exec"
+	"go.husin.dev/caprice/internal/exec"
 )
 
 var execOpts = &exec.ExecOptions{}

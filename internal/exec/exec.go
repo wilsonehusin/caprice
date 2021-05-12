@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/wilsonehusin/caprice/internal/buildinfo"
-	"github.com/wilsonehusin/caprice/scribe"
+	"go.husin.dev/caprice/internal/buildinfo"
+	"go.husin.dev/caprice/scribe"
 )
 
 type ExecOptions struct {

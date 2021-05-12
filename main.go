@@ -16,7 +16,7 @@ limitations under the License.
 
 package main
 
-import "github.com/wilsonehusin/caprice/cmd"
+import "go.husin.dev/caprice/cmd"
 
 func main() {
 	cmd.Execute()

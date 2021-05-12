@@ -11,8 +11,8 @@ import (
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/rs/zerolog/log"
 
-	"github.com/wilsonehusin/caprice/internal/metric"
-	"github.com/wilsonehusin/caprice/scribe"
+	"go.husin.dev/caprice/internal/metric"
+	"go.husin.dev/caprice/scribe"
 )
 
 type ServerOptions struct {

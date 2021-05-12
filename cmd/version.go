@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/wilsonehusin/caprice/internal/buildinfo"
+	"go.husin.dev/caprice/internal/buildinfo"
 )
 
 var versionCmd = &cobra.Command{

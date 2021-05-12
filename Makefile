@@ -6,7 +6,7 @@ GOX_FLAGS?=-osarch="linux/amd64 linux/arm linux/arm64 darwin/amd64 darwin/arm64"
 OUT_DIR?=_output
 CGO_ENABLED?=0
 
-GOTARGET=github.com/wilsonehusin/caprice
+GOTARGET=go.husin.dev/caprice
 GOVERSION=$(shell go env GOVERSION)
 
 REPO_ROOT=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))

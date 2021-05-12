@@ -1,4 +1,4 @@
-module github.com/wilsonehusin/caprice
+module go.husin.dev/caprice
 
 go 1.16
 

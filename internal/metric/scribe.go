@@ -9,7 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/rs/zerolog/log"
 
-	"github.com/wilsonehusin/caprice/internal/scribetag"
+	"go.husin.dev/caprice/internal/scribetag"
 )
 
 var (

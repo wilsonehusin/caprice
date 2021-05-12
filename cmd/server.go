@@ -7,7 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
-	"github.com/wilsonehusin/caprice/internal/server"
+	"go.husin.dev/caprice/internal/server"
 )
 
 var serverOpts server.ServerOptions

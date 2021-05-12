@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"path"
 
-	"github.com/wilsonehusin/caprice/scribe"
+	"go.husin.dev/caprice/scribe"
 )
 
 type loggedStream struct {

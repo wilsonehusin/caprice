@@ -24,7 +24,7 @@ Throughout execution, users can see in the linked URL above to follow the progre
 
 ```go
 import (
-  "github.com/wilsonehusin/caprice/scribe"
+  "go.husin.dev/caprice/scribe"
 )
 
 func thing1() {}
@@ -48,7 +48,7 @@ func RunSomething() {
 import (
   "testing"
 
-  "github.com/wilsonehusin/caprice/scribe"
+  "go.husin.dev/caprice/scribe"
 )
 
 func runStuff() error {}
@@ -71,7 +71,7 @@ The powerful part comes in when stages are incorporated.
 import (
   "testing"
 
-  "github.com/wilsonehusin/caprice/scribe"
+  "go.husin.dev/caprice/scribe"
 )
 
 func TestMyApp(t *testing.T) {

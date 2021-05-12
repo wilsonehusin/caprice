@@ -17,7 +17,7 @@ func (f *fakeTestingT) Fatal(errs ...interface{}) {
 }
 
 func init() {
-	SetSource("github.com/wilsonehusin/caprice/scribe")
+	SetSource("go.husin.dev/caprice/scribe")
 
 	if dest := os.Getenv("CAPRICE_DESTINATION"); dest != "" {
 		Destination = dest
