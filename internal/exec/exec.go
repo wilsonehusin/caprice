@@ -15,6 +15,7 @@ import (
 )
 
 type ExecOptions struct {
+	Annotations string `json:"-"`
 	Destination string `json:"destination,omitempty"`
 	Source      string `json:"source,omitempty"`
 	Bucket      string `json:"bucket,omitempty"`
@@ -44,6 +45,9 @@ func Run(opts *ExecOptions, args []string) error {
 	s, err := scribe.NewWithContext(opts.Bucket, ctx)
 	if err != nil {
 		return err
+	}
+	if opts.Annotations != "" {
+		s.Metadata["annotations"] = opts.Annotations
 	}
 
 	// This looks hacky for a reason: the value of scribeErr has to be lazy-evaluated

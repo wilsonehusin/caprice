@@ -111,8 +111,9 @@ If the visualization were transformed to ASCII output, it will roughly look like
 
 ### Identifiers
 
-[TODO] There are valid reasons to add more metadata into a given execution.
-This can be setup through `init()` or `CAPRICE_METADATA=`,  such as:
+There are valid reasons to add more metadata into a given execution.
+
+The Go interface supports multiple keys with flexible value (i.e. `interface{}`)
 
 ```go
 func init() {
@@ -120,8 +121,16 @@ func init() {
 }
 ```
 
+`caprice exec` provides a simplier interface:
+
 ```
-CAPRICE_METADATA='{"mode"="local"}'
+CAPRICE_ANNOTATION=some-pipeline-test-123
+```
+
+which would be equivalent to the following:
+
+```go
+scribe.AddMetadata("annotation", "some-pipeline-test-123")
 ```
 
 ## Trivia
