@@ -78,7 +78,7 @@ func NewWithContext(bucket string, ctx context.Context) (*Scribe, error) {
 }
 
 func (s *Scribe) pulse(ctx context.Context, name string) {
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(1 * time.Minute)
 	for {
 		select {
 		case <-ctx.Done():

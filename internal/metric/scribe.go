@@ -24,7 +24,7 @@ var (
 )
 
 func trackScribeTimeout(ctx context.Context) {
-	timer := time.NewTicker(3 * time.Second)
+	timer := time.NewTicker(5 * time.Second)
 	for {
 		select {
 		case <-timer.C:
@@ -42,7 +42,7 @@ func logTimeouts() {
 		if oldest == nil {
 			break
 		}
-		if oldest.LastPulse.Add(30 * time.Second).After(time.Now()) {
+		if oldest.LastPulse.Add(3 * time.Minute).After(time.Now()) {
 			break
 		}
 		log.Error().Str("name", oldest.Name).Time("lastPulse", oldest.LastPulse).Msg("timed out")
