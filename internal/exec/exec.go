@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"github.com/wilsonehusin/caprice/internal/buildinfo"
 	"github.com/wilsonehusin/caprice/scribe"
 )
 
@@ -22,8 +23,20 @@ type ExecOptions struct {
 }
 
 func Run(opts *ExecOptions, args []string) error {
-	scribe.Destination = opts.Destination
-	scribe.SetSource(opts.Source)
+	if opts.Destination == "" {
+		scribe.Destination = buildinfo.Server
+	} else {
+		scribe.Destination = opts.Destination
+	}
+	if opts.Source == "" {
+		hostname, err := os.Hostname()
+		if err != nil {
+			scribe.SetSource("exec.caprice")
+		}
+		scribe.SetSource(hostname)
+	} else {
+		scribe.SetSource(opts.Source)
+	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer cancel()

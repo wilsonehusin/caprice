@@ -84,4 +84,5 @@ func init() {
 
 	rootCmd.AddCommand(serverCmd)
 	rootCmd.AddCommand(execCmd)
+	rootCmd.AddCommand(versionCmd)
 }
